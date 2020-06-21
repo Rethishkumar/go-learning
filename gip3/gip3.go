@@ -201,46 +201,76 @@ package main
 // 	}
 // }
 
-/*
-Listing 3.11 Using a close channel
-*/
+// /*
+// Listing 3.11 Using a close channel
+// */
+
+// import (
+// 	"fmt"
+// 	"time"
+// )
+
+// func main() {
+// 	untill := time.After(5 * time.Second)
+// 	done := make(chan bool)
+// 	msg := make(chan string)
+
+// 	go send(msg, done)
+
+// 	for {
+// 		select {
+// 		case m := <-msg:
+// 			fmt.Println(m)
+// 		case <-untill:
+// 			fmt.Println("Timeout 1")
+// 			done <- true
+// 			time.Sleep(500 * time.Millisecond)
+// 			fmt.Println("Timeout 2")
+// 			return
+// 		}
+// 	}
+// }
+
+// func send(msg chan<- string, done <-chan bool) {
+// 	for {
+// 		select {
+// 		case <-done:
+// 			fmt.Println("Done")
+// 			close(msg)
+// 			return
+// 		default:
+// 			msg <- "hello"
+// 			time.Sleep(500 * time.Millisecond)
+// 		}
+// 	}
+// }
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
 func main() {
-	untill := time.After(5 * time.Second)
-	done := make(chan bool)
-	msg := make(chan string)
+	var wg sync.WaitGroup
 
-	go send(msg, done)
-
-	for {
-		select {
-		case m := <-msg:
-			fmt.Println(m)
-		case <-untill:
-			fmt.Println("Timeout 1")
-			done <- true
-			time.Sleep(500 * time.Millisecond)
-			fmt.Println("Timeout 2")
-			return
-		}
+	// Buffered Channel
+	lock := make(chan bool, 1)
+	for i := 1; i < 7; i++ {
+		wg.Add(1)
+		go func(val int) {
+			worker(val, lock)
+			wg.Done()
+		}(i)
 	}
+	wg.Wait()
 }
 
-func send(msg chan<- string, done <-chan bool) {
-	for {
-		select {
-		case <-done:
-			fmt.Println("Done")
-			close(msg)
-			return
-		default:
-			msg <- "hello"
-			time.Sleep(500 * time.Millisecond)
-		}
-	}
+func worker(val int, lock chan bool) {
+	fmt.Printf("%d wants the lock\n", val)
+	lock <- true
+	fmt.Printf("%d has the lock\n", val)
+	time.Sleep(500 * time.Millisecond)
+	fmt.Printf("%d is releasing the lock\n", val)
+	<-lock
 }
