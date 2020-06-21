@@ -92,75 +92,155 @@ package main
 // 	return err
 // }
 
+// /*
+// 	Listing 3.6 Word counter with locks
+// */
+
+// import (
+// 	"bufio"
+// 	"fmt"
+// 	"os"
+// 	"strings"
+// 	"sync"
+// )
+
+// func main() {
+// 	var wg sync.WaitGroup
+
+// 	w := newWords()
+// 	for _, f := range os.Args[1:] {
+// 		wg.Add(1)
+// 		go func(filename string) {
+// 			if err := tallyWords(filename, w); err != nil {
+// 				fmt.Println(err.Error())
+// 			}
+// 			wg.Done()
+// 		}(f)
+// 	}
+
+// 	wg.Wait()
+
+// 	fmt.Println("Words that appear more than once")
+// 	for word, count := range w.found {
+// 		if count > 1 {
+// 			fmt.Printf("%s occured %d times \n", word, count)
+// 		}
+// 	}
+// }
+
+// type words struct {
+// 	sync.Mutex
+// 	found map[string]int
+// }
+
+// func newWords() *words {
+// 	return &words{found: map[string]int{}}
+// }
+
+// func (w *words) add(word string, n int) {
+// 	w.Lock()
+// 	defer w.Unlock()
+// 	count, ok := w.found[word]
+// 	if !ok {
+// 		w.found[word] = n
+// 		return
+// 	}
+// 	w.found[word] = count + n
+// }
+
+// func tallyWords(filename string, dict *words) error {
+// 	file, err := os.Open(filename)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	defer file.Close()
+
+// 	scanner := bufio.NewScanner(file)
+// 	scanner.Split(bufio.ScanWords)
+// 	for scanner.Scan() {
+// 		word := strings.ToLower(scanner.Text())
+// 		dict.add(word, 1)
+// 	}
+// 	return scanner.Err()
+// }
+
+// /*
+// 	Listing 3.7 Using multiple channels
+// */
+
+// import (
+// 	"fmt"
+// 	"os"
+// 	"time"
+// )
+
+// func main() {
+// 	done := time.After(30 * time.Second)
+// 	echo := make(chan []byte)
+// 	go readStdin(echo)
+
+// 	for {
+// 		select {
+// 		case buf := <-echo:
+// 			os.Stdout.Write(buf)
+// 		case <-done:
+// 			fmt.Println("Timed out")
+// 			os.Exit(0)
+// 		}
+// 	}
+// }
+
+// func readStdin(out chan<- []byte) {
+// 	for {
+// 		data := make([]byte, 1024)
+// 		l, _ := os.Stdin.Read(data)
+// 		if l > 0 {
+// 			out <- data
+// 		}
+// 	}
+// }
+
 /*
-	Listing 3.6 Word counter with locks
+Listing 3.11 Using a close channel
 */
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
-	"sync"
+	"time"
 )
 
 func main() {
-	var wg sync.WaitGroup
+	untill := time.After(5 * time.Second)
+	done := make(chan bool)
+	msg := make(chan string)
 
-	w := newWords()
-	for _, f := range os.Args[1:] {
-		wg.Add(1)
-		go func(filename string) {
-			if err := tallyWords(filename, w); err != nil {
-				fmt.Println(err.Error())
-			}
-			wg.Done()
-		}(f)
-	}
+	go send(msg, done)
 
-	wg.Wait()
-
-	fmt.Println("Words that appear more than once")
-	for word, count := range w.found {
-		if count > 1 {
-			fmt.Printf("%s occured %d times \n", word, count)
+	for {
+		select {
+		case m := <-msg:
+			fmt.Println(m)
+		case <-untill:
+			fmt.Println("Timeout 1")
+			done <- true
+			time.Sleep(500 * time.Millisecond)
+			fmt.Println("Timeout 2")
+			return
 		}
 	}
 }
 
-type words struct {
-	sync.Mutex
-	found map[string]int
-}
-
-func newWords() *words {
-	return &words{found: map[string]int{}}
-}
-
-func (w *words) add(word string, n int) {
-	w.Lock()
-	defer w.Unlock()
-	count, ok := w.found[word]
-	if !ok {
-		w.found[word] = n
-		return
+func send(msg chan<- string, done <-chan bool) {
+	for {
+		select {
+		case <-done:
+			fmt.Println("Done")
+			close(msg)
+			return
+		default:
+			msg <- "hello"
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
-	w.found[word] = count + n
-}
-
-func tallyWords(filename string, dict *words) error {
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanWords)
-	for scanner.Scan() {
-		word := strings.ToLower(scanner.Text())
-		dict.add(word, 1)
-	}
-	return scanner.Err()
 }
