@@ -1,3 +1,3 @@
-module gip/gip2
+module gip/gip3
 
 go 1.14
