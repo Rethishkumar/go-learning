@@ -245,32 +245,36 @@ package main
 // 	}
 // }
 
-import (
-	"fmt"
-	"sync"
-	"time"
-)
+// /*
+// 	Listing 3.12 Simple locking with channels
+// */
 
-func main() {
-	var wg sync.WaitGroup
+// import (
+// 	"fmt"
+// 	"sync"
+// 	"time"
+// )
 
-	// Buffered Channel
-	lock := make(chan bool, 1)
-	for i := 1; i < 7; i++ {
-		wg.Add(1)
-		go func(val int) {
-			worker(val, lock)
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-}
+// func main() {
+// 	var wg sync.WaitGroup
 
-func worker(val int, lock chan bool) {
-	fmt.Printf("%d wants the lock\n", val)
-	lock <- true
-	fmt.Printf("%d has the lock\n", val)
-	time.Sleep(500 * time.Millisecond)
-	fmt.Printf("%d is releasing the lock\n", val)
-	<-lock
-}
+// 	// Buffered Channel of size 1
+// 	lock := make(chan bool, 1)
+// 	for i := 1; i < 7; i++ {
+// 		wg.Add(1)
+// 		go func(val int) {
+// 			worker(val, lock)
+// 			wg.Done()
+// 		}(i)
+// 	}
+// 	wg.Wait()
+// }
+
+// func worker(val int, lock chan bool) {
+// 	fmt.Printf("%d wants the lock\n", val)
+// 	lock <- true
+// 	fmt.Printf("%d has the lock\n", val)
+// 	time.Sleep(500 * time.Millisecond)
+// 	fmt.Printf("%d is releasing the lock\n", val)
+// 	<-lock
+// }
